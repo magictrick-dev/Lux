@@ -28,5 +28,6 @@ main(int argc, char **argv)
 
 #endif
 
+#include <core/allocator.cpp>
 #include <environment/runtime.cpp>
 #include <compiler/lexer.cpp>
