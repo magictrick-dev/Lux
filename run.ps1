@@ -1,1 +1,1 @@
-./comp/Debug/lux.exe
+./comp/Debug/lux.exe ./tests/symbols.lux

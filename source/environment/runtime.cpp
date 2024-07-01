@@ -1,6 +1,12 @@
 #include <environment/runtime.h>
 #include <stdio.h>
 
+typedef struct environment_state
+{
+    memory_arena heap_arena;
+    const char *source_path;
+} environment_state;
+
 persist environment_state state;
 
 b32     
@@ -28,6 +34,23 @@ environment_runtime_init(environment_arguments *arguments)
     if (state.heap_arena.memory.ptr == NULL)
         return environment_return_codes::init_memory_allocation_failure;
 
+    // Check our arguments.
+    if (arguments->count < 2) 
+    {
+        printf("Error: Not enough arguments.\n");
+        return environment_return_codes::init_invalid_arguments;
+    }
+
+    // Check if the file we passed in is valid.
+    if (!platform_file_exists(arguments->list[1]))
+    {
+        printf("Error: Invalid file path for %s.\n", arguments->list[1]);
+        return environment_return_codes::init_invalid_file_path;
+    }
+
+    // Set the source path we are working with.
+    state.source_path = arguments->list[1];
+
     return environment_return_codes::init_success;
 }
 
@@ -35,6 +58,13 @@ b32
 environment_runtime_main()
 {
 
+    // Load the file into memory.
+    u64 file_size = platform_get_file_size(state.source_path);
+    char *file_buffer = arena_push_array(&state.heap_arena, char, file_size + 1);
+    u64 bytes_read = platform_read_entire_file(state.source_path, file_buffer, file_size);
+    lux_assert(file_size == bytes_read);
+    file_buffer[file_size] = '\0';
+    printf("%s\n", file_buffer);
 
     return environment_return_codes::main_success;
 }
