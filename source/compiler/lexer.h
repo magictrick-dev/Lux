@@ -3,13 +3,15 @@
 #include <core/definitions.h>
 #include <compiler/token.h>
 
-typedef struct source_lexicon
+typedef struct tokenizer 
 {
     const char *source;
     u64 step;
     u64 offset;
 } source_lexicon;
 
-b32 get_next_token(source_lexicon *lexicon, source_token *token);
+b32     tokenizer_is_eol(tokenizer *state);
+b32     tokenizer_is_eof(tokenizer *state);
+b32     get_next_token(tokenizer *state, source_token *token);
 
 #endif

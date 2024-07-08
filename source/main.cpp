@@ -1,4 +1,7 @@
 #include <core/definitions.h>
+#include <core/hashtable.h>
+#include <core/linklist.h>
+#include <core/allocator.h>
 #include <compiler/token.h>
 #include <compiler/lexer.h>
 #include <environment/runtime.h>
@@ -28,5 +31,7 @@ main(int argc, char **argv)
 
 #endif
 
+#include <core/allocator.cpp>
+#include <core/hashtable.cpp>
 #include <environment/runtime.cpp>
 #include <compiler/lexer.cpp>

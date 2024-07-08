@@ -37,7 +37,7 @@ platform_get_file_size(const char *file_path)
 }
 
 u64
-platform_read_entire_file(const char *file_path, buffer *buffer, u32 read_size)
+platform_read_entire_file(const char *file_path, void *buffer, u32 read_size)
 {
 
     HANDLE file_handle = win32_create_read_file_handle(file_path);
@@ -47,9 +47,9 @@ platform_read_entire_file(const char *file_path, buffer *buffer, u32 read_size)
     // spin over the amount read until we reach the desired amount.
     DWORD total_bytes_read = 0;
     DWORD bytes_read = 0;
-    while (total_bytes_read <= read_size)
+    while (total_bytes_read < read_size)
     {
-        ReadFile(file_handle, buffer->ptr, read_size - total_bytes_read, &bytes_read, NULL);
+        ReadFile(file_handle, buffer, read_size - total_bytes_read, &bytes_read, NULL);
         total_bytes_read += bytes_read;
     }
 
