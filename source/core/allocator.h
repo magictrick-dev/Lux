@@ -3,7 +3,7 @@
 #include <core/definitions.h>
 
 typedef buffer  (*memory_allocate_fptr)(u64 size);
-typedef void    (*memory_release_fptr)(buffer memory);
+typedef void    (*memory_release_fptr)(void* memory);
 
 typedef struct allocator_context 
 {
@@ -13,8 +13,8 @@ typedef struct allocator_context
     void *user_defined;
 } allocator_context;
 
-buffer              memory_allocate(u64 size);
-void                memory_release(buffer memory);
+void*               memory_allocate(u64 size);
+void                memory_release(void* pointer);
 void                push_allocator_context(allocator_context *context);
 allocator_context*  pop_allocator_context();
 allocator_context*  get_default_allocator_context();

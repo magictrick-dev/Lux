@@ -64,7 +64,26 @@ environment_runtime_main()
     u64 bytes_read = platform_read_entire_file(state.source_path, file_buffer, file_size);
     lux_assert(file_size == bytes_read);
     file_buffer[file_size] = '\0';
-    printf("%s\n", file_buffer);
+
+    // Once the file is loaded into memory, let us try to lex the file.
+    tokenizer tokenizer_state = {};
+    tokenizer_state.source = file_buffer;
+
+    source_token current_token = {};
+    while (get_next_token(&tokenizer_state, &current_token))
+    {
+        if (current_token.type == token_type::UNDEFINED)
+        {
+            printf("UNDEFINED TOKEN ENCOUNTERED.\n");
+            const char *offset = current_token.lexeme.source + current_token.lexeme.offset;
+            char buffer[256];
+            memcpy(buffer, offset, current_token.lexeme.length);
+            buffer[current_token.lexeme.length] = '\0';
+            printf("    '%s'.\n", buffer);
+        }
+        else
+            printf("Type encountered: %d.\n", current_token.type);
+    }
 
     return environment_return_codes::main_success;
 }

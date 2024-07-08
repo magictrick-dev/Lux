@@ -3,20 +3,20 @@
 internal allocator_context *current_context;
 internal allocator_context default_context;
 
-buffer              
+void*
 memory_allocate(u64 size)
 {
     assert(current_context != NULL);
     buffer result = current_context->allocate(size);
-    return result;
+    return result.ptr;
 }
 
 void                
-memory_release(buffer memory)
+memory_release(void *ptr)
 {
 
     assert(current_context != NULL);
-    current_context->release(memory);
+    current_context->release(ptr);
     return;
 
 }
@@ -70,8 +70,8 @@ clib_malloc(u64 size)
 }
 
 void    
-clib_free(buffer memory)
+clib_free(void *ptr)
 {
-    free(memory.ptr);
+    free(ptr);
 }
 

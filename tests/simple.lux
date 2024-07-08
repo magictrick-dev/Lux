@@ -1,0 +1,25 @@
+import console as con;
+import system as sys;
+
+fibonacci(n: i32): i32
+{
+    
+    if (n <= 1) return(n);
+    
+    // Implied strong typing.
+    result := fibonacci(n - 1) + fibonacci(n - 2);
+    return result;
+
+}
+
+main(): i32
+{
+
+    start: u64 = sys.get_timestamp();
+    result := fibonacci(128);
+    end: u64 = sys.get_timestamp();
+
+    elapsed: f32 = (end - start) / sys.time_frequency();
+    con.print("Total time elapsed is %.4f\n.", elapsed);
+
+}
