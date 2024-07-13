@@ -14,6 +14,40 @@ tokenizer_is_eof(tokenizer *state)
     return result;
 }
 
+static inline b32
+symbol_is_numeric(tokenizer *state)
+{
+    char c = state->source[state->step];
+    return (c >= 48 && c <= 57);
+}
+
+static inline b32
+symbol_is_alpha(tokenizer *state)
+{
+    char c = state->source[state->step];
+    b32 is_lower = (c >= 97 && c <= 122);
+    b32 is_upper = (c >= 65 && c <= 90);
+    return (is_lower || is_upper);
+}
+
+static inline b32
+symbol_is_alphanumeric(tokenizer *state)
+{
+    b32 result = (symbol_is_numeric(state) || symbol_is_alpha(state));
+    return result;
+}
+
+static inline b32
+symbol_is_hexadecimal(tokenizer *state)
+{
+    
+    char c = state->source[state->step];
+    b32 is_numeric = symbol_is_numeric(state);
+    b32 is_hex = (c >= 97 && c <= 102) || (c >= 65 && c <= 70);
+    return (is_numeric || is_hex);
+
+}
+
 static inline char
 peek_symbol(tokenizer *state)
 {
@@ -217,6 +251,211 @@ match_symbols_and_tokenize(tokenizer *state, source_token *token)
 
         } break;
 
+        case '=':
+        {
+
+            char peek = peek_symbol_at(state, 1);
+            if (peek == '=')
+            {
+
+                consume_symbol(state);
+                consume_symbol(state);
+                initialize_token(state, token, token_type::EQUALS_EQUALS);
+                state->offset = state->step;
+                return true;
+                
+            }
+
+            else
+            {
+
+                consume_symbol(state);
+                initialize_token(state, token, token_type::EQUALS);
+                state->offset = state->step;
+                return true;
+
+            }
+
+        } break;
+
+        case '!':
+        {
+
+            char peek = peek_symbol_at(state, 1);
+            if (peek == '=')
+            {
+
+                consume_symbol(state);
+                consume_symbol(state);
+                initialize_token(state, token, token_type::BANG_EQUALS);
+                state->offset = state->step;
+                return true;
+                
+            }
+
+            else
+            {
+
+                consume_symbol(state);
+                initialize_token(state, token, token_type::BANG);
+                state->offset = state->step;
+                return true;
+
+            }
+
+        } break;
+
+        case '(':
+        {
+
+            consume_symbol(state);
+            initialize_token(state, token, token_type::LEFT_PARENTHESIS);
+            state->offset = state->step;
+            return true;
+
+        } break;
+
+        case ')':
+        {
+
+            consume_symbol(state);
+            initialize_token(state, token, token_type::RIGHT_PARENTHESIS);
+            state->offset = state->step;
+            return true;
+
+        } break;
+
+        case '[':
+        {
+
+            consume_symbol(state);
+            initialize_token(state, token, token_type::LEFT_ANGLE_BRACKET);
+            state->offset = state->step;
+            return true;
+
+        } break;
+
+        case ']':
+        {
+
+            consume_symbol(state);
+            initialize_token(state, token, token_type::RIGHT_ANGLE_BRACKET);
+            state->offset = state->step;
+            return true;
+
+        } break;
+
+        case '{':
+        {
+
+            consume_symbol(state);
+            initialize_token(state, token, token_type::LEFT_CURLY_BRACKET);
+            state->offset = state->step;
+            return true;
+
+        } break;
+
+        case '}':
+        {
+
+            consume_symbol(state);
+            initialize_token(state, token, token_type::RIGHT_CURLY_BRACKET);
+            state->offset = state->step;
+            return true;
+
+        } break;
+
+        case ':':
+        {
+
+            char peek = peek_symbol_at(state, 1);
+            if (peek == '=')
+            {
+
+                consume_symbol(state);
+                consume_symbol(state);
+                initialize_token(state, token, token_type::COLON_EQUALS);
+                state->offset = state->step;
+                return true;
+                
+            }
+
+            else
+            {
+
+                consume_symbol(state);
+                initialize_token(state, token, token_type::COLON);
+                state->offset = state->step;
+                return true;
+
+            }
+
+        } break;
+
+        case ';':
+        {
+
+            consume_symbol(state);
+            initialize_token(state, token, token_type::SEMICOLON);
+            state->offset = state->step;
+            return true;
+
+        } break;
+
+        case '&':
+        {
+
+            char peek = peek_symbol_at(state, 1);
+            if (peek == '&')
+            {
+
+                consume_symbol(state);
+                consume_symbol(state);
+                initialize_token(state, token, token_type::AMPERSAND_AMPERSAND);
+                state->offset = state->step;
+                return true;
+                
+            }
+
+            else
+            {
+
+                consume_symbol(state);
+                initialize_token(state, token, token_type::AMPERSAND);
+                state->offset = state->step;
+                return true;
+
+            }
+
+        } break;
+
+        case '|':
+        {
+
+            char peek = peek_symbol_at(state, 1);
+            if (peek == '|')
+            {
+
+                consume_symbol(state);
+                consume_symbol(state);
+                initialize_token(state, token, token_type::PIPE_PIPE);
+                state->offset = state->step;
+                return true;
+                
+            }
+
+            else
+            {
+
+                consume_symbol(state);
+                initialize_token(state, token, token_type::PIPE);
+                state->offset = state->step;
+                return true;
+
+            }
+
+        } break;
+
     }
 
     return false;
@@ -252,16 +491,130 @@ match_comments(tokenizer *state, source_token *token)
     
         case '/':
         {
+
             consume_symbol(state);
             consume_symbol(state);
-            while (!tokenizer_is_eof(state) && !tokenizer_is_eol(state)) consume_symbol(state);
+
+            while (!tokenizer_is_eof(state) && !tokenizer_is_eol(state)) 
+                consume_symbol(state);
+
             state->offset = state->step;
             return true;
+
         } break;
+
+        case '*':
+        {
+
+            consume_symbol(state);
+            consume_symbol(state);
+            
+            while (!tokenizer_is_eof(state))
+            {
+
+                if (peek_symbol(state) == '*')
+                {
+                    consume_symbol(state);
+                    if (peek_symbol(state) == '/')
+                    {
+                        consume_symbol(state);
+
+                        state->offset = state->step;
+                        return true;
+                    }
+                }
+
+                consume_symbol(state);
+            }
+
+        }
 
     };
 
     return false;
+}
+
+static inline b32
+match_numbers_and_tokenize(tokenizer *state, source_token *token)
+{
+
+    if (!symbol_is_numeric(state)) return false;
+
+    // Hexademical case.
+    char head = peek_symbol_at(state, 0);
+    char marker = peek_symbol_at(state, 1);
+    if (head == '0' && (marker == 'x' || marker == 'X'))
+    {
+
+        consume_symbol(state);
+        consume_symbol(state);
+
+        while (symbol_is_hexadecimal(state))
+            consume_symbol(state);
+
+        initialize_token(state, token, token_type::HEXADECIMAL);
+        state->offset = state->step;
+        return true;
+
+    }
+
+    // Either integer or real.
+    uint32_t type = token_type::INTEGER;
+    while (true)
+    {
+        
+        consume_symbol(state);
+
+        // If we encounter a decimal, switch type and consume or
+        // return true.
+        if (peek_symbol(state) == '.')
+        {
+            if (type == token_type::INTEGER)
+            {
+                type = token_type::REAL;
+                consume_symbol(state);
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        if (!symbol_is_numeric(state))
+            break;
+
+    }
+
+    initialize_token(state, token, type);
+    state->offset = state->step;
+    return true;
+}
+
+static inline b32
+match_identifiers_and_tokenize(tokenizer *state, source_token *token)
+{
+
+    // First character must either be an underscore or alpha.
+    char head = peek_symbol(state);
+    if (!(symbol_is_alpha(state) || head == '_')) return false;
+    consume_symbol(state);
+
+    // All following characters can be any combination of underscores or alnums.
+    char current = peek_symbol(state);
+    while (current == '_' || symbol_is_alphanumeric(state))
+    {
+        consume_symbol(state);
+        current = peek_symbol(state);
+    }
+
+    initialize_token(state, token, token_type::IDENTIFIER);
+    state->offset = state->step;
+
+    // TODO(Chris): At this point, we need to check if the token matches an
+    //              identifier keyword and switch the token type to the keyword.
+    //              Keywords are first-class token types.
+
+    return true;
 }
 
 b32 
@@ -275,18 +628,16 @@ get_next_token(tokenizer *state, source_token *token)
     if (tokenizer_is_eof(state)) return false;
     state->offset = state->step;
     
-    // Match symbols.
+    // Match.
     if (match_symbols_and_tokenize(state, token)) return true;
+    if (match_numbers_and_tokenize(state, token)) return true;
+    if (match_identifiers_and_tokenize(state, token)) return true;
 
     // Undefined symbol encountered.
     consume_symbol(state);
     initialize_token(state, token, token_type::UNDEFINED);
     state->offset = state->step;
     return true;
-
-    
-    return false;
-
 
 }
 

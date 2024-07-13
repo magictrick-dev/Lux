@@ -65,6 +65,10 @@ environment_runtime_main()
     lux_assert(file_size == bytes_read);
     file_buffer[file_size] = '\0';
 
+    printf("%s\n", file_buffer);
+    printf("-------------------------------------------------------------------\n");
+
+    /*
     // Once the file is loaded into memory, let us try to lex the file.
     tokenizer tokenizer_state = {};
     tokenizer_state.source = file_buffer;
@@ -84,7 +88,11 @@ environment_runtime_main()
         else
             printf("Type encountered: %d.\n", current_token.type);
     }
+    */
 
+    parser parser_state = {};
+    parser_state.tokenizer_state.source = file_buffer;
+    
     return environment_return_codes::main_success;
 }
 

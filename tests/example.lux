@@ -1,80 +1,25 @@
+import console as con;
+import system as sys;
 
-fibonacci(n: i32) : i32
+fibonacci(n: i32): i32
 {
-
-    if (n <= 1) return n;
-    return fibonacci(n - 1) + fibonacci(n - 2);
+    
+    if (n <= 1) return(n);
+    
+    // Implied strong typing.
+    result := fibonacci(n - 1) + fibonacci(n - 2);
+    return result;
 
 }
 
-main() : i32
+main(): i32
 {
 
-    x : i32 = 4;
-    y : i32 = 7;
-    z : i32 = x + y;
+    start: u64 = sys.get_timestamp();
+    result := fibonacci(128);
+    end: u64 = sys.get_timestamp();
 
-    foo := x * y;
+    elapsed: f32 = (end - start) / sys.time_frequency();
+    con.print("Total time elapsed is %.4f\n.", elapsed);
 
-    sum(a: i32, b: i32): i32
-    {
-        return a + b;
-    }
-
-    result = sum(x, y);
-
-    for (index := 0; index < y; ++index)
-    {
-        result += (index + 1);
-    }
-
-    bounds: i32 = 0;
-    while (bounds < x)
-    {
-        result += (bounds + 1);
-    }
-
-    power_result: i32 = power(x, 2);
-    power(base: i32, exponent: i32): i32
-    {
-        result: i32 = base;
-        for (idx := 2; idx <= exponent; ++idx)
-            result *= base;
-        return result;
-    }
-
-    gravity :: r32 = 9.81;
-    pi :: r32 = 3.14f;
-
-    /*
-    calculate_kilobytes(size: u64) : u64
-    {
-        return size * 1024;
-    }
-
-    calculate_megabytes(size: u64) : u64
-    {
-        return size * calculate_kilobytes(size);
-    }
-
-    calculate_gigabytes(size: u64) : u64
-    {
-        return size * calculate_megabytes(size);
-    }
-
-    // Run code, at compile time, to set constant value.
-    // Think of it like a really clever macro. This is our end-game compiler
-    // trick. If we can do this, we are balling. We should do two methods,
-    // interpret & replace and compile & replace. Interpret and replace will
-    // perform run an interpretter on the above code, which will then modify
-    // the source file with the output. Compile and run will not modify the source
-    // code, rather the final output will be an in-place replacement of machine code.
-    // Depending on implementation, perhaps the result should be designed such that
-    // only "simple" code can execute, AKA no dependency-functions or out-of-scope
-    // touching. The compiler can easily determine this.
-    //base_allocation_size : u64 := calculate_gigabytes(4) #irun;
-    */
-
-    return 0;
 }
-

@@ -4,6 +4,7 @@
 #include <core/allocator.h>
 #include <compiler/token.h>
 #include <compiler/lexer.h>
+#include <compiler/parser.h>
 #include <environment/runtime.h>
 #include <platform/file.h>
 #include <platform/system.h>
@@ -35,3 +36,4 @@ main(int argc, char **argv)
 #include <core/hashtable.cpp>
 #include <environment/runtime.cpp>
 #include <compiler/lexer.cpp>
+#include <compiler/parser.cpp>

@@ -1,39 +1,33 @@
-// /* */
-+ - * / = :=
-< <= > >= == !=
-<< >> & | ~ ^
-( ) { } : :: ; #
-
+/* Symbol group A. */
 + += ++
 - -= --
 * *=
 / /=
 
-identifier
-fooBarBazBax
-variable1
-var1able
-camel_case
-1234
-12.34
-1_000_000
-3.141_592_653_59
+/* Symbol group B. */
+< <= <<
+> >= >>
 
-if
-else
-for
-while
+/* Symbol group C. */
+= == 
+! !=
+( ) [ ] { }
 
-i8
-i16
-i32
-i64
+/* Symbol group D. */
+: := ;
+& &&
+| ||
 
-u8
-u16
-u32
-u64
+/* Numerics. */
+123456789
+3.14159265359
+0x1234ABCD
 
-r32
-r64
+/* Identifiers. */
+test
+test1234
+TEST
+_test
+_1234test
+_test1234
 
