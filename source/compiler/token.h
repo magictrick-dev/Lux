@@ -37,13 +37,12 @@ typedef enum token_type : u32
     AMPERSAND_AMPERSAND,
     PIPE,
     PIPE_PIPE,
-
     INTEGER,
     REAL,
     HEXADECIMAL,
     IDENTIFIER,
-
     UNDEFINED,
+    END_OF_FILE,
 } token_type;
 
 typedef struct source_token

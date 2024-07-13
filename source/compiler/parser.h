@@ -1,28 +1,21 @@
 #ifndef SOURCE_COMPILER_PARSER_H
 #define SOURCE_COMPILER_PARSER_H
 #include <compiler/token.h>
+#include <compiler/lexer.h>
 #include <core/definitions.h>
-
-struct binary_expression_node;
-struct unary_expression_node;
-struct primary_expression_node;
-struct grouping_expression_node;
-struct syntax_node;
+#include <core/allocator.h>
 
 typedef struct parser
 {
-    tokenizer tokenizer_state;
-    source_token current_token;
-    source_token previous_token;
-} parser;
+    memory_arena   *arena;
+    tokenizer       tokenizer_state;
 
-typedef enum syntax_node_type : u32
-{
-    BINARY_EXPRESSION,
-    UNARY_EXPRESSION,
-    PRIMARY_EXPRESSION,
-    GROUPING_EXPRESSION,
-} syntax_node_type;
+    source_token    tokens[3];
+    source_token   *peek_token      = NULL;
+    source_token   *current_token   = NULL;
+    source_token   *previous_token  = NULL;
+
+} parser;
 
 typedef enum operation_type : u32
 {
@@ -36,13 +29,18 @@ typedef enum operation_type : u32
     OP_LESS_THAN_EQUALS_TO,
     OP_GREATER_THAN,
     OP_GREATER_THAN_EQUALS_TO,
+    OP_SIGN_NEGATIVE,
+    OP_NEGATION,
+    OP_INVALID,
 } operation_type;
 
 typedef enum literal_type : u32
 {
-    LITERAL_INTEGER,
+    LITERAL_SIGNED_INTEGER,
+    LITERAL_UNSIGNED_INTEGER,
     LITERAL_REAL,
     LITERAL_STRING,
+    LITERAL_BOOLEAN,
 } literal_type;
 
 typedef struct literal_object
@@ -53,36 +51,45 @@ typedef struct literal_object
     union
     {
         const char* string;
-        u64         integer;
+        i64         signed_integer;
+        u64         unsigned_integer;
         double      real;
     };
 
 } literal_object;
 
-typedef struct binary_expression_node
+struct binary_expression_node
 {
-    syntax_node    *left;
-    syntax_node    *right;
-    operation_type  operation;
-} binary_expression_node;
+    void   *left;
+    void   *right;
+    u32     operation;
+};
 
-typedef struct unary_expression_node
+struct unary_expression_node
 {
-    syntax_node    *center;
-    operation_type  operation;
-} unary_expression_node;
+    void   *center;
+    u32     operation;
+};
 
-typedef struct primary_expression_node
+struct primary_expression_node
 {
     literal_object object;
-} primary_expression_node;
+};
 
-typedef struct grouping_expression_node
+struct grouping_expression_node
 {
-    syntax_node    *center;
-} grouping_expression_node;
+    void    *center;
+};
 
-typedef struct syntax_node
+typedef enum syntax_node_type : u32
+{
+    BINARY_EXPRESSION,
+    UNARY_EXPRESSION,
+    PRIMARY_EXPRESSION,
+    GROUPING_EXPRESSION,
+} syntax_node_type;
+
+struct syntax_node
 {
 
     u32 type;
@@ -95,7 +102,7 @@ typedef struct syntax_node
         grouping_expression_node    grouping_expression;
     };
 
-} syntax_node;
+};
 
 // --- Parser Grammer ----------------------------------------------------------
 //
@@ -109,6 +116,20 @@ typedef struct syntax_node
 //      primary         : NUMBER | STRING | "true" | "false" | "(" expression ")"
 //
 
-syntax_node* recursively_descend_expression(parser *state);
+b32             initialize_parser(parser *state, memory_arena *arena, const char *source_buffer);
+syntax_node*    recursively_descend_primary(parser *state);
+syntax_node*    recursively_descend_unary(parser *state);
+syntax_node*    recursively_descend_factor(parser *state);
+syntax_node*    recursively_descend_term(parser *state);
+syntax_node*    recursively_descend_comparison(parser *state);
+syntax_node*    recursively_descend_equality(parser *state);
+syntax_node*    recursively_descend_expression(parser *state);
+
+// --- Parse Traversal ---------------------------------------------------------
+//
+// Primarily for debugging the output.
+//
+
+void output_ast(syntax_node *node);
 
 #endif

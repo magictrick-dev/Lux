@@ -27,5 +27,18 @@ arena_pop(memory_arena *arena, u64 bytes)
     lux_assert(arena->commit <= arena->memory.size); // Ensures we didn't pop under zero.
 }
 
+inline u64
+arena_save(memory_arena *arena)
+{
+    u64 result = arena->commit;
+    return result;
+}
+
+inline void
+arena_restore(memory_arena *arena, u64 state)
+{
+    arena->commit = state;
+    return;
+}
 
 #endif

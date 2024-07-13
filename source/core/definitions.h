@@ -1,6 +1,7 @@
 #ifndef SOURCE_CORE_DEFINITIONS_H
 #define SOURCE_CORE_DEFINITIONS_H
 #include <stdint.h>
+#include <math.h>
 #include <assert.h>
 
 #define lux_kilobytes(n) ((u64)n * 1024)
