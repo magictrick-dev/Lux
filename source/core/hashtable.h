@@ -1,5 +1,5 @@
-#ifndef SIGMAFOX_CORE_UTILITIES_HASHTABLE_H
-#define SIGMAFOX_CORE_UTILITIES_HASHTABLE_H
+#ifndef SOURCE_CORE_HASHTABLE_H
+#define SOURCE_CORE_HASHTABLE_H
 #include <core/definitions.h>
 
 // --- Hash Table --------------------------------------------------------------
