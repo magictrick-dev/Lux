@@ -17,14 +17,6 @@ typedef struct parser
 
 } parser;
 
-typedef enum syntax_node_type : u32
-{
-    BINARY_EXPRESSION,
-    UNARY_EXPRESSION,
-    PRIMARY_EXPRESSION,
-    GROUPING_EXPRESSION,
-} syntax_node_type;
-
 typedef enum operation_type : u32
 {
     OP_ADDITION,
@@ -37,11 +29,15 @@ typedef enum operation_type : u32
     OP_LESS_THAN_EQUALS_TO,
     OP_GREATER_THAN,
     OP_GREATER_THAN_EQUALS_TO,
+    OP_SIGN_NEGATIVE,
+    OP_NEGATION,
+    OP_INVALID,
 } operation_type;
 
 typedef enum literal_type : u32
 {
-    LITERAL_INTEGER,
+    LITERAL_SIGNED_INTEGER,
+    LITERAL_UNSIGNED_INTEGER,
     LITERAL_REAL,
     LITERAL_STRING,
     LITERAL_BOOLEAN,
@@ -55,7 +51,8 @@ typedef struct literal_object
     union
     {
         const char* string;
-        u64         integer;
+        i64         signed_integer;
+        u64         unsigned_integer;
         double      real;
     };
 
@@ -63,15 +60,15 @@ typedef struct literal_object
 
 struct binary_expression_node
 {
-    void    *left;
-    void    *right;
-    operation_type  operation;
+    void   *left;
+    void   *right;
+    u32     operation;
 };
 
 struct unary_expression_node
 {
-    void    *center;
-    operation_type  operation;
+    void   *center;
+    u32     operation;
 };
 
 struct primary_expression_node
@@ -83,6 +80,14 @@ struct grouping_expression_node
 {
     void    *center;
 };
+
+typedef enum syntax_node_type : u32
+{
+    BINARY_EXPRESSION,
+    UNARY_EXPRESSION,
+    PRIMARY_EXPRESSION,
+    GROUPING_EXPRESSION,
+} syntax_node_type;
 
 struct syntax_node
 {
@@ -112,8 +117,19 @@ struct syntax_node
 //
 
 b32             initialize_parser(parser *state, memory_arena *arena, const char *source_buffer);
+syntax_node*    recursively_descend_primary(parser *state);
+syntax_node*    recursively_descend_unary(parser *state);
+syntax_node*    recursively_descend_factor(parser *state);
+syntax_node*    recursively_descend_term(parser *state);
 syntax_node*    recursively_descend_comparison(parser *state);
 syntax_node*    recursively_descend_equality(parser *state);
 syntax_node*    recursively_descend_expression(parser *state);
+
+// --- Parse Traversal ---------------------------------------------------------
+//
+// Primarily for debugging the output.
+//
+
+void output_ast(syntax_node *node);
 
 #endif
