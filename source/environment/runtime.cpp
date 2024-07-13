@@ -90,8 +90,9 @@ environment_runtime_main()
     }
     */
 
-    parser parser_state = {};
-    parser_state.tokenizer_state.source = file_buffer;
+    parser parser_state;
+    if (!initialize_parser(&parser_state, &state.heap_arena, file_buffer))
+        printf("WARNING: Source file is empty.");
     
     return environment_return_codes::main_success;
 }

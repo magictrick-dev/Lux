@@ -1,19 +1,20 @@
 #ifndef SOURCE_COMPILER_PARSER_H
 #define SOURCE_COMPILER_PARSER_H
 #include <compiler/token.h>
+#include <compiler/lexer.h>
 #include <core/definitions.h>
-
-struct binary_expression_node;
-struct unary_expression_node;
-struct primary_expression_node;
-struct grouping_expression_node;
-struct syntax_node;
+#include <core/allocator.h>
 
 typedef struct parser
 {
-    tokenizer tokenizer_state;
-    source_token current_token;
-    source_token previous_token;
+    memory_arena   *arena;
+    tokenizer       tokenizer_state;
+
+    source_token    tokens[3];
+    source_token   *peek_token      = NULL;
+    source_token   *current_token   = NULL;
+    source_token   *previous_token  = NULL;
+
 } parser;
 
 typedef enum syntax_node_type : u32
@@ -43,6 +44,7 @@ typedef enum literal_type : u32
     LITERAL_INTEGER,
     LITERAL_REAL,
     LITERAL_STRING,
+    LITERAL_BOOLEAN,
 } literal_type;
 
 typedef struct literal_object
@@ -59,30 +61,30 @@ typedef struct literal_object
 
 } literal_object;
 
-typedef struct binary_expression_node
+struct binary_expression_node
 {
-    syntax_node    *left;
-    syntax_node    *right;
+    void    *left;
+    void    *right;
     operation_type  operation;
-} binary_expression_node;
+};
 
-typedef struct unary_expression_node
+struct unary_expression_node
 {
-    syntax_node    *center;
+    void    *center;
     operation_type  operation;
-} unary_expression_node;
+};
 
-typedef struct primary_expression_node
+struct primary_expression_node
 {
     literal_object object;
-} primary_expression_node;
+};
 
-typedef struct grouping_expression_node
+struct grouping_expression_node
 {
-    syntax_node    *center;
-} grouping_expression_node;
+    void    *center;
+};
 
-typedef struct syntax_node
+struct syntax_node
 {
 
     u32 type;
@@ -95,7 +97,7 @@ typedef struct syntax_node
         grouping_expression_node    grouping_expression;
     };
 
-} syntax_node;
+};
 
 // --- Parser Grammer ----------------------------------------------------------
 //
@@ -109,6 +111,9 @@ typedef struct syntax_node
 //      primary         : NUMBER | STRING | "true" | "false" | "(" expression ")"
 //
 
-syntax_node* recursively_descend_expression(parser *state);
+b32             initialize_parser(parser *state, memory_arena *arena, const char *source_buffer);
+syntax_node*    recursively_descend_comparison(parser *state);
+syntax_node*    recursively_descend_equality(parser *state);
+syntax_node*    recursively_descend_expression(parser *state);
 
 #endif

@@ -625,8 +625,14 @@ get_next_token(tokenizer *state, source_token *token)
     while (match_whitespace(state, token));
     while (match_comments(state, token));
     while (match_whitespace(state, token));
-    if (tokenizer_is_eof(state)) return false;
     state->offset = state->step;
+
+    // If we reached EOF, return EOF token.
+    if (tokenizer_is_eof(state)) 
+    {
+        initialize_token(state, token, token_type::END_OF_FILE);
+        return false;
+    }
     
     // Match.
     if (match_symbols_and_tokenize(state, token)) return true;
