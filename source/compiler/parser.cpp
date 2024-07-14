@@ -1,14 +1,49 @@
 #include <compiler/parser.h>
 
-#define propagate_on_error(state, object) if (object == NULL) set_parse_error(state); return NULL
+#define propagate_on_error(state, type, object) if (object == NULL) { set_parse_error(state, type); return NULL; }
 
 // --- Parser Helpers ----------------------------------------------------------
 
 static inline void
-set_parse_error(parser *state)
+set_parse_error(parser *state, error_type type)
 {
-
+    
+    if (type == ERROR_HANDLED) return;
     state->parse_errors += 1;
+
+    switch (type)
+    {
+
+        case error_type::ERROR_UNEXPECTED_EXPRESSION_TOKEN:
+        {
+            printf("%s(x,y): error 0x%08X Unexpected token in expression.\n",
+                    state->tokenizer_state.file_path, type);
+        } break;
+
+        case error_type::ERROR_STRING_REACHED_EOL:
+        {
+            printf("%s(x,y): error 0x%08X Quoted string reached end-of-file.\n",
+                    state->tokenizer_state.file_path, type);
+        } break;
+        
+        case error_type::ERROR_STRING_REACHED_EOF:
+        {
+            printf("%s(x,y): error 0x%08X Quoted string reached end-of-line.\n",
+                    state->tokenizer_state.file_path, type);
+        } break;
+
+        case error_type::ERROR_UNMATCHED_PAREN_IN_EXPRESSION:
+        {
+            printf("%s(x,y): error 0x%08X Unmatched parenthesis in expression.\n",
+                    state->tokenizer_state.file_path, type);
+        } break;
+
+        default:
+        {
+            lux_noreach("Unimplemented error handler type.");
+            return;
+        } break;
+    };
 
 }
 
@@ -193,7 +228,7 @@ convert_token_to_literal(parser *state, source_token *token, syntax_node *primar
         {
 
             primary_node->primary_expression.object.type = 
-                literal_type::LITERAL_SINGLE_QUOTED_STRING;
+                literal_type::LITERAL_DOUBLE_QUOTED_STRING;
             primary_node->primary_expression.object.string = 
                 insert_string_into_pool(&state->primitive_string_pool, token_string_buffer);
 
@@ -214,17 +249,19 @@ convert_token_to_literal(parser *state, source_token *token, syntax_node *primar
 // --- Parser ------------------------------------------------------------------
 
 b32
-initialize_parser(parser *state, memory_arena *arena, const char *source_buffer)
+initialize_parser(parser *state, memory_arena *arena, const char *source_buffer,
+        const char *file_path)
 {
 
     // Initialize the state.
-    state->tokenizer_state.source   = source_buffer;
-    state->tokenizer_state.step     = 0;
-    state->tokenizer_state.offset   = 0;
-    state->arena                    = arena;
-    state->peek_token               = &state->tokens[0];
-    state->current_token            = &state->tokens[1];
-    state->previous_token           = &state->tokens[2];
+    state->tokenizer_state.file_path    = file_path;
+    state->tokenizer_state.source       = source_buffer;
+    state->tokenizer_state.step         = 0;
+    state->tokenizer_state.offset       = 0;
+    state->arena                        = arena;
+    state->peek_token                   = &state->tokens[0];
+    state->current_token                = &state->tokens[1];
+    state->previous_token               = &state->tokens[2];
 
     // Initialize the string pool.
     state->primitive_string_pool.buffer = arena_push_array(arena, char, 
@@ -272,7 +309,7 @@ recursively_descend_primary(parser *state)
     {
         
         syntax_node *expression_node = recursively_descend_expression(state);
-        propagate_on_error(state, expression_node);
+        propagate_on_error(state, error_type::ERROR_HANDLED, expression_node);
         
         if (state->current_token->type == token_type::RIGHT_PARENTHESIS)
         {
@@ -288,15 +325,13 @@ recursively_descend_primary(parser *state)
         else
         {
         
-            printf("ERROR: Unmatched parenthesis in expression.\n");
-            propagate_on_error(state, state->previous_token);
+            propagate_on_error(state, error_type::ERROR_UNMATCHED_PAREN_IN_EXPRESSION, NULL);
 
         }
 
     }
 
-    printf("ERROR: Unexpected token in expression.\n");
-    propagate_on_error(state, state->previous_token);
+    propagate_on_error(state, error_type::ERROR_UNEXPECTED_EXPRESSION_TOKEN, NULL);
     return NULL;
 
 }
@@ -319,7 +354,7 @@ recursively_descend_unary(parser *state)
             operation = operation_type::OP_SIGN_NEGATIVE;
 
         syntax_node *right = recursively_descend_unary(state);
-        propagate_on_error(state, right);
+        propagate_on_error(state, error_type::ERROR_HANDLED, right);
 
         syntax_node *unary_node = arena_push_type(state->arena, syntax_node);
 
@@ -332,7 +367,7 @@ recursively_descend_unary(parser *state)
     }
 
     syntax_node *primary = recursively_descend_primary(state);
-    propagate_on_error(state, primary);
+    propagate_on_error(state, error_type::ERROR_HANDLED, primary);
 
     return primary;
 
@@ -343,7 +378,7 @@ recursively_descend_factor(parser *state)
 {
 
     syntax_node *node = recursively_descend_unary(state);
-    propagate_on_error(state, node);
+    propagate_on_error(state, error_type::ERROR_HANDLED, node);
 
     token_type_match_list matches = match_list(2, 
             token_type::STAR, 
@@ -354,7 +389,7 @@ recursively_descend_factor(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_unary(state);
-        propagate_on_error(state, right);
+        propagate_on_error(state, error_type::ERROR_HANDLED, right);
 
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 
@@ -376,7 +411,7 @@ recursively_descend_term(parser *state)
 {
 
     syntax_node *node = recursively_descend_factor(state);
-    propagate_on_error(state, node);
+    propagate_on_error(state, error_type::ERROR_HANDLED, node);
 
     token_type_match_list matches = match_list(2, 
             token_type::PLUS, 
@@ -387,7 +422,7 @@ recursively_descend_term(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_factor(state);
-        propagate_on_error(state, right);
+        propagate_on_error(state, error_type::ERROR_HANDLED, right);
 
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 
@@ -409,7 +444,7 @@ recursively_descend_comparison(parser *state)
 {
 
     syntax_node *node = recursively_descend_term(state);
-    propagate_on_error(state, node);
+    propagate_on_error(state, error_type::ERROR_HANDLED, node);
 
     token_type_match_list matches = match_list(4, 
             token_type::LESS_THAN, 
@@ -422,7 +457,7 @@ recursively_descend_comparison(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_term(state);
-        propagate_on_error(state, right);
+        propagate_on_error(state, error_type::ERROR_HANDLED, right);
 
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 
@@ -444,7 +479,7 @@ recursively_descend_equality(parser *state)
 {
 
     syntax_node *node = recursively_descend_comparison(state);
-    propagate_on_error(state, node);
+    propagate_on_error(state, error_type::ERROR_HANDLED, node);
 
     token_type_match_list matches = match_list(2, 
             token_type::BANG_EQUALS, 
@@ -455,7 +490,7 @@ recursively_descend_equality(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_comparison(state);
-        propagate_on_error(state, right);
+        propagate_on_error(state, error_type::ERROR_HANDLED, right);
 
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 

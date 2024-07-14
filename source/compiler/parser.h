@@ -5,6 +5,19 @@
 #include <core/definitions.h>
 #include <core/allocator.h>
 
+typedef enum parse_location_identifier : u32
+{
+
+} parse_location_identifier;
+
+typedef enum parse_error_type : u32
+{
+    ERROR_HANDLED                               = 0x00010000,
+    ERROR_UNEXPECTED_EXPRESSION_TOKEN           = 0x00020000,
+    ERROR_STRING_REACHED_EOL                    = 0x00030000,
+    ERROR_STRING_REACHED_EOF                    = 0x00040000,
+    ERROR_UNMATCHED_PAREN_IN_EXPRESSION         = 0x00050000,
+} error_type;
 
 // NOTE(Chris): The string pool basically stores all strings that a source file
 //              defines and localizes it so that they can be accessed relatively
@@ -149,7 +162,8 @@ struct syntax_node
 //      primary         : NUMBER | STRING | "true" | "false" | "(" expression ")"
 //
 
-b32             initialize_parser(parser *state, memory_arena *arena, const char *source_buffer);
+b32             initialize_parser(parser *state, memory_arena *arena, 
+                    const char *source_buffer, const char *file_path);
 syntax_node*    recursively_descend_primary(parser *state);
 syntax_node*    recursively_descend_unary(parser *state);
 syntax_node*    recursively_descend_factor(parser *state);
