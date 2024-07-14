@@ -5,10 +5,11 @@
 
 typedef struct tokenizer 
 {
+    const char *file_path;
     const char *source;
     u64 step;
     u64 offset;
-} source_lexicon;
+} tokenizer;
 
 b32     tokenizer_is_eol(tokenizer *state);
 b32     tokenizer_is_eof(tokenizer *state);

@@ -1,1 +1,1 @@
-./comp/Debug/lux.exe ./tests/expressions.lux
+./bin/lux.exe ./tests/expressions.lux

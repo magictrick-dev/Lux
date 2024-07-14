@@ -617,6 +617,61 @@ match_identifiers_and_tokenize(tokenizer *state, source_token *token)
     return true;
 }
 
+static inline b32
+match_strings_and_tokenize(tokenizer *state, source_token *token)
+{
+
+    char head = peek_symbol(state);
+    char match;
+    token_type type;
+
+    switch (head)
+    {
+        case '\'':
+        {
+            match = '\'';
+            type = token_type::SINGLE_QUOTE_STRING;
+        } break;
+
+        case '"':
+        {
+            match = '"';
+            type = token_type::DOUBLE_QUOTE_STRING;
+        } break;
+
+        default:
+        {
+            return false;
+        } break;
+
+    }
+
+    consume_symbol(state);
+    state->offset = state->step; // We don't actually care about the quotes.
+
+    // Consume until end of line or file or match.
+    while (peek_symbol(state) != match && !(tokenizer_is_eol(state) || tokenizer_is_eof(state)))
+        consume_symbol(state);
+
+    if (tokenizer_is_eol(state))
+    {
+        initialize_token(state, token, token_type::UNDEFINED_STR_EOL);
+        return true;
+    }
+
+    else if (tokenizer_is_eof(state))
+    {
+        initialize_token(state, token, token_type::UNDEFINED_STR_EOF);
+        return true;
+    }
+
+    initialize_token(state, token, type);
+    consume_symbol(state); // Consume the final quote.
+    state->offset = state->step;
+    return true;
+    
+}
+
 b32 
 get_next_token(tokenizer *state, source_token *token)
 {
@@ -634,10 +689,11 @@ get_next_token(tokenizer *state, source_token *token)
         return false;
     }
     
-    // Match.
-    if (match_symbols_and_tokenize(state, token)) return true;
-    if (match_numbers_and_tokenize(state, token)) return true;
-    if (match_identifiers_and_tokenize(state, token)) return true;
+    // Match each our cases.
+    if (match_symbols_and_tokenize(state, token))       return true;
+    if (match_numbers_and_tokenize(state, token))       return true;
+    if (match_strings_and_tokenize(state, token))       return true;
+    if (match_identifiers_and_tokenize(state, token))   return true;
 
     // Undefined symbol encountered.
     consume_symbol(state);
