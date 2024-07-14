@@ -40,8 +40,12 @@ typedef enum token_type : u32
     INTEGER,
     REAL,
     HEXADECIMAL,
+    SINGLE_QUOTE_STRING,
+    DOUBLE_QUOTE_STRING,
     IDENTIFIER,
     UNDEFINED,
+    UNDEFINED_STR_EOL,
+    UNDEFINED_STR_EOF,
     END_OF_FILE,
 } token_type;
 

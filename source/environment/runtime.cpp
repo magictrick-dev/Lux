@@ -95,6 +95,7 @@ environment_runtime_main()
         printf("WARNING: Source file is empty.");
  
     syntax_node *expression = recursively_descend_expression(&parser_state);
+    if (expression == NULL) return environment_return_codes::main_success;
     output_ast(expression);
 
     return environment_return_codes::main_success;

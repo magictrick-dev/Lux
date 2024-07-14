@@ -5,6 +5,34 @@
 #include <core/definitions.h>
 #include <core/allocator.h>
 
+
+// NOTE(Chris): The string pool basically stores all strings that a source file
+//              defines and localizes it so that they can be accessed relatively
+//              easily. We don't want to search this list.
+//              
+//              At some point, we will need to look at creating a hash table
+//              for these strings, store the pointer to the strings in this pool,
+//              and use that to access strings. This will reduce redundancy for
+//              strings which share the same value.
+//
+//              Further more, we want the list of syntax_nodes to be contiguous
+//              for performance reasons, so we don't want to sparsely adapt the
+//              size of the pool or hash table. This will require some additional
+//              thought to properly handle these scenarios.
+//
+//              The string pool size should be sufficiently large enough to never
+//              require a resize. Therefore, we will assert on capacity limit.
+//
+
+#define PARSER_DEFAULT_STRING_POOL_SIZE lux_megabytes(16)
+
+typedef struct string_pool
+{
+    char   *buffer;
+    u64     buffer_size;
+    u64     buffer_offset;
+} string_pool;
+
 typedef struct parser
 {
     memory_arena   *arena;
@@ -14,6 +42,10 @@ typedef struct parser
     source_token   *peek_token      = NULL;
     source_token   *current_token   = NULL;
     source_token   *previous_token  = NULL;
+
+    string_pool     primitive_string_pool;
+
+    u64 parse_errors = 0;
 
 } parser;
 
@@ -39,7 +71,8 @@ typedef enum literal_type : u32
     LITERAL_SIGNED_INTEGER,
     LITERAL_UNSIGNED_INTEGER,
     LITERAL_REAL,
-    LITERAL_STRING,
+    LITERAL_SINGLE_QUOTED_STRING,
+    LITERAL_DOUBLE_QUOTED_STRING,
     LITERAL_BOOLEAN,
 } literal_type;
 

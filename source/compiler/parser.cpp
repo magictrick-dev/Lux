@@ -1,6 +1,16 @@
 #include <compiler/parser.h>
 
+#define propagate_on_error(state, object) if (object == NULL) set_parse_error(state); return NULL
+
 // --- Parser Helpers ----------------------------------------------------------
+
+static inline void
+set_parse_error(parser *state)
+{
+
+    state->parse_errors += 1;
+
+}
 
 typedef struct token_type_match_list
 {
@@ -92,15 +102,38 @@ current_token_matches_from_list(parser *state, token_type_match_list *list)
     return false;
 }
 
+static inline const char *
+insert_string_into_pool(string_pool *pool, const char *string)
+{
+
+    char *pool_head = pool->buffer + pool->buffer_offset;
+
+    u64 index = 0;
+    while (string[index] != '\0')
+    {
+        lux_assert(pool->buffer_offset + index < pool->buffer_size - 1);
+        pool_head[index] = string[index];
+        index++;
+    }
+
+    lux_assert(pool->buffer_offset + index + 1 < pool->buffer_size - 1);
+    index++;
+    pool_head[index] = '\0';
+    pool->buffer_offset += index;
+
+    return pool_head;
+
+}
+
 static inline void
-convert_token_to_literal(memory_arena *arena, source_token *token, syntax_node *primary_node)
+convert_token_to_literal(parser *state, source_token *token, syntax_node *primary_node)
 {
 
     // Save arena state.
-    u64 arena_state = arena_save(arena);
+    u64 arena_state = arena_save(state->arena);
 
     // Copy the string to an internal buffer.
-    char *token_string_buffer = arena_push_array(arena, char, token->lexeme.length + 1);
+    char *token_string_buffer = arena_push_array(state->arena, char, token->lexeme.length + 1);
     memcpy(token_string_buffer, token->lexeme.source + token->lexeme.offset, token->lexeme.length);
     token_string_buffer[token->lexeme.length] = '\0';
 
@@ -146,6 +179,26 @@ convert_token_to_literal(memory_arena *arena, source_token *token, syntax_node *
 
         } break;
 
+        case token_type::SINGLE_QUOTE_STRING:
+        {
+
+            primary_node->primary_expression.object.type = 
+                literal_type::LITERAL_SINGLE_QUOTED_STRING;
+            primary_node->primary_expression.object.string = 
+                insert_string_into_pool(&state->primitive_string_pool, token_string_buffer);
+
+        } break;
+
+        case token_type::DOUBLE_QUOTE_STRING:
+        {
+
+            primary_node->primary_expression.object.type = 
+                literal_type::LITERAL_SINGLE_QUOTED_STRING;
+            primary_node->primary_expression.object.string = 
+                insert_string_into_pool(&state->primitive_string_pool, token_string_buffer);
+
+        } break;
+
         default:
         {
             lux_noreach("Literal case is probably invalid or uncaught.");
@@ -153,7 +206,7 @@ convert_token_to_literal(memory_arena *arena, source_token *token, syntax_node *
     };
 
     // Restore arena state.
-    arena_restore(arena, arena_state);
+    arena_restore(state->arena, arena_state);
 
 }
 
@@ -173,6 +226,12 @@ initialize_parser(parser *state, memory_arena *arena, const char *source_buffer)
     state->current_token            = &state->tokens[1];
     state->previous_token           = &state->tokens[2];
 
+    // Initialize the string pool.
+    state->primitive_string_pool.buffer = arena_push_array(arena, char, 
+            PARSER_DEFAULT_STRING_POOL_SIZE);
+    state->primitive_string_pool.buffer_size = PARSER_DEFAULT_STRING_POOL_SIZE;
+    state->primitive_string_pool.buffer_offset = 0;
+
     // Prime the parser with tokens.
     get_next_token(&state->tokenizer_state, state->current_token);
     get_next_token(&state->tokenizer_state, state->peek_token);
@@ -187,10 +246,12 @@ syntax_node*
 recursively_descend_primary(parser *state)
 {
 
-    token_type_match_list primitive_matches = match_list(3,
+    token_type_match_list primitive_matches = match_list(5,
             token_type::INTEGER,
             token_type::REAL,
-            token_type::HEXADECIMAL);
+            token_type::HEXADECIMAL,
+            token_type::SINGLE_QUOTE_STRING,
+            token_type::DOUBLE_QUOTE_STRING);
 
     // Primitive expressions.
     if (current_token_matches_from_list(state, &primitive_matches))
@@ -198,7 +259,7 @@ recursively_descend_primary(parser *state)
         
         syntax_node *primary_node = arena_push_type(state->arena, syntax_node);
         primary_node->type = syntax_node_type::PRIMARY_EXPRESSION;
-        convert_token_to_literal(state->arena, state->previous_token, primary_node);
+        convert_token_to_literal(state, state->previous_token, primary_node);
         return primary_node;
 
     }
@@ -211,6 +272,7 @@ recursively_descend_primary(parser *state)
     {
         
         syntax_node *expression_node = recursively_descend_expression(state);
+        propagate_on_error(state, expression_node);
         
         if (state->current_token->type == token_type::RIGHT_PARENTHESIS)
         {
@@ -227,13 +289,14 @@ recursively_descend_primary(parser *state)
         {
         
             printf("ERROR: Unmatched parenthesis in expression.\n");
-            return NULL;
+            propagate_on_error(state, state->previous_token);
 
         }
 
     }
 
     printf("ERROR: Unexpected token in expression.\n");
+    propagate_on_error(state, state->previous_token);
     return NULL;
 
 }
@@ -256,6 +319,8 @@ recursively_descend_unary(parser *state)
             operation = operation_type::OP_SIGN_NEGATIVE;
 
         syntax_node *right = recursively_descend_unary(state);
+        propagate_on_error(state, right);
+
         syntax_node *unary_node = arena_push_type(state->arena, syntax_node);
 
         unary_node->type = syntax_node_type::UNARY_EXPRESSION;
@@ -267,6 +332,8 @@ recursively_descend_unary(parser *state)
     }
 
     syntax_node *primary = recursively_descend_primary(state);
+    propagate_on_error(state, primary);
+
     return primary;
 
 }
@@ -276,6 +343,7 @@ recursively_descend_factor(parser *state)
 {
 
     syntax_node *node = recursively_descend_unary(state);
+    propagate_on_error(state, node);
 
     token_type_match_list matches = match_list(2, 
             token_type::STAR, 
@@ -286,6 +354,8 @@ recursively_descend_factor(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_unary(state);
+        propagate_on_error(state, right);
+
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 
         binary_node->type = syntax_node_type::BINARY_EXPRESSION;
@@ -306,6 +376,7 @@ recursively_descend_term(parser *state)
 {
 
     syntax_node *node = recursively_descend_factor(state);
+    propagate_on_error(state, node);
 
     token_type_match_list matches = match_list(2, 
             token_type::PLUS, 
@@ -316,6 +387,8 @@ recursively_descend_term(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_factor(state);
+        propagate_on_error(state, right);
+
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 
         binary_node->type = syntax_node_type::BINARY_EXPRESSION;
@@ -336,6 +409,7 @@ recursively_descend_comparison(parser *state)
 {
 
     syntax_node *node = recursively_descend_term(state);
+    propagate_on_error(state, node);
 
     token_type_match_list matches = match_list(4, 
             token_type::LESS_THAN, 
@@ -348,6 +422,8 @@ recursively_descend_comparison(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_term(state);
+        propagate_on_error(state, right);
+
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 
         binary_node->type = syntax_node_type::BINARY_EXPRESSION;
@@ -368,6 +444,7 @@ recursively_descend_equality(parser *state)
 {
 
     syntax_node *node = recursively_descend_comparison(state);
+    propagate_on_error(state, node);
 
     token_type_match_list matches = match_list(2, 
             token_type::BANG_EQUALS, 
@@ -378,6 +455,8 @@ recursively_descend_equality(parser *state)
 
         u32 operation = token_type_to_operation_type(state->previous_token->type);
         syntax_node *right = recursively_descend_comparison(state);
+        propagate_on_error(state, right);
+
         syntax_node *binary_node = arena_push_type(state->arena, syntax_node);
 
         binary_node->type = syntax_node_type::BINARY_EXPRESSION;
@@ -480,6 +559,16 @@ output_ast(syntax_node *node)
                 case literal_type::LITERAL_REAL:
                 {
                     printf("%f", node->primary_expression.object.real);
+                } break;
+
+                case literal_type::LITERAL_SINGLE_QUOTED_STRING:
+                {
+                    printf("'%s'", node->primary_expression.object.string);
+                } break;
+
+                case literal_type::LITERAL_DOUBLE_QUOTED_STRING:
+                {
+                    printf("\"%s\"", node->primary_expression.object.string);
                 } break;
 
                 default: lux_noreach("Unaccounted for primary print.");

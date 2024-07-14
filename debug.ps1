@@ -1,1 +1,1 @@
-devenv ./comp/lux.sln
+& "C:\Program Files (Custom)\RADDebugger\raddbg.exe"
